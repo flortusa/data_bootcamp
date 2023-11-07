@@ -1,1 +1,0 @@
-Estandarizacion base de datos
