@@ -1,0 +1,61 @@
+1. Consultar todos los en Manhattan que cumplen con el criterio de tener una puntuación mayor o igual a 10 en al menos una inspección:
+{$and:
+[{"borough": "Manhattan"},
+{"grades": {$elemMatch: {"score": {$gte:10}}}}]}
+
+DONDE:
+$and: Une clausulas de consulta, y devuelve todos los documentos que coinciden con las condiciones de ambas clausulas.
+borough: Filtra los resultados acorde a una contrasena
+$elemMatch: Coincide con documentos que contienen un campo de matriz con al menos un elem que coincide con todos los criterios 
+$gte: Coincide con valores que son mayores o iguales que un valor especificado
+
+
+2. Consultar todos los restaurantes que tienen una inspección con una calificación de "B":
+{"grades": {$elemMatch: {"grade": "B"}}}
+
+#Alternativa dos: {"grades.grade": { $eq: "B" }}
+
+
+3. Consultar todos los restaurantes con una cocina (cuisine) de tipo "Irish":
+{"cuisine": "Irish"}
+
+
+4. Buscar restaurantes que hayan obtenido una calificación "A":
+{"grades.grade": { $eq: "A" }}
+
+
+5. Buscar restaurantes en Brooklyn con una puntuación de grade superior a 10
+{$and:[
+  {"borough": "Brooklyn"},
+  {"grades.score": {$gt:10}}
+]}
+
+
+6. Encontrar restaurantes en Manhattan que sirvan comida irlandesa y tengan una calificación "A"
+{  "borough": "Manhattan",
+  "cuisine": "Irish",
+  "grades.grade": "A"
+}
+
+
+7. Encontrar restaurantes en Queens que sirvan comida kosher y hayan obtenido una calificación "A" o "B" después de una fecha específica(2013-01-16)
+{"borough": "Queens",
+"cuisine": "Jewish/Kosher",
+"grades": {
+$elemMatch: {
+"grade": { $in: ["A", "B"] },
+"date": { $gte: ISODate("2013-01-16T00:00:00Z")}
+}}}
+
+
+8. Buscar restaurantes con una puntuación de grade promedio mayor a 8
+{"grades.score":{$gt:8}, $expr:{$gt:[{$avg:"$grades.score"},8]}}
+
+
+9. Encontrar restaurantes en Brooklyn que sirvan hamburguesas y tengan una calificación "A" en la última evaluación
+{$and:[
+{ "borough": "Brooklyn",
+  "cuisine": "Hamburgers",
+  "grades.0.grade": "A"
+}
+]}
