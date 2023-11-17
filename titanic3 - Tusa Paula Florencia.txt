@@ -1,0 +1,46 @@
+columnbyexample columns: survived value: CASE([ISNULL(survived),NULL(),ISMISSING([survived]),'',CASE([survived == '0','not survived',survived == '1','survived',NULL()])]) exampleMappingId: 53873 as: 'survived_def'
+extractpatterns type: custom col: name on: `{alpha}+. `
+rename type: manual mapping: [name1,'Title']
+extractpatterns type: custom col: name on: `({alpha}+ )*{alpha}+` limit: 3
+drop col: Title action: Drop
+rename type: manual mapping: [name2,'Title']
+rename type: manual mapping: [name1,'LastName']
+rename type: manual mapping: [name3,'FirstName']
+rename type: manual mapping: [Title,'title']
+columnbyexample columns: sex value: CASE([ISNULL(sex),NULL(),ISMISSING([sex]),'',CASE([MATCHES([sex], /^[a-z][a-z][a-z][a-z]$/, false),'1',MATCHES([sex], /^[a-z][a-z][a-z][a-z][a-z][a-z]$/, false),'0',NULL()])]) exampleMappingId: 53874 as: 'SexCode'
+case condition: ifThenElse if: age < 1 then: 'Menor de 1 año' else: 'Otros' as: 'AgeCategory'
+case condition: customConditions cases: [age < 1,'infants'],[age <= 10,'children'],[age <= 20,'teens'],[age <= 60,'adults'],[age > 60,'elders'] as: 'column1'
+drop col: AgeCategory action: Drop
+rename type: manual mapping: [column1,'AgeCategory']
+case condition: columnConditions col: sibsp colCases: [sibsp = 0,'No siblings\/spouses aboard'] default: 'with siblings\/spouses abroad' as: 'sibspClasiffication'
+extractpatterns type: custom col: ticket on: `PC `
+drop col: ticket1 action: Drop
+extractpatterns type: numbers col: ticket
+extractpatterns type: custom col: ticket end: ' '
+rename type: manual mapping: [ticket2,'ticketLetter']
+rename type: manual mapping: [ticket1,'ticketNumber']
+extractbetweendelimiters col: {home.dest} start: ', '
+rename type: manual mapping: [{home.dest1},'home.dest.Country']
+sort order: -age
+sort order: age
+case condition: columnConditions col: parch colCases: [parch = 0,'No parents\/children abroad'] default: 'with parent\/children abroad' as: 'parchClassification'
+move col: title position: after after: FirstName
+set col: age value: IFNULL($col, '-') group: age
+set col: sex value: IF(sex == 'female', 'femenino', 'masculino') group: sex
+sort order: -fare
+sort order: fare
+set col: fare value: IFMISSING($col, 0)
+set col: age value: IFMISSING($col, 'N\/A')
+set col: AgeCategory value: IFMISSING($col, 'N\/A')
+set col: ticketLetter value: IFMISSING($col, 'without letter')
+set col: ticketNumber value: IFMISSING($col, 'without number')
+sort order: fare
+sort order: -fare
+sort order: -fare
+case condition: customConditions cases: [fare < 22,'Low cost'],[fare < 45,'Premium'] default: 'First class' as: 'column1'
+set col: fare value: IF(fare == 0, 'free ticket', $col)
+set col: cabin value: IFMISSING($col, NULL())
+set col: boat value: IFMISSING($col, NULL())
+set col: body value: IFMISSING($col, NULL())
+set col: {home.dest} value: IFMISSING($col, NULL())
+case condition: columnConditions col: title colCases: [title == 'Miss','SingleWoman'],[title = 'Mrs','MarriedWoman'] default: 'N\/A' as: 'FemaleMaritalStatus'
