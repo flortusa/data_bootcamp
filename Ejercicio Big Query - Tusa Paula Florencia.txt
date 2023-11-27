@@ -1,0 +1,107 @@
+-- Ejercicio 1: Contar el número de temporadas únicas en las que cada jugador ha jugado
+SELECT PLAYER_NAME, COUNT(DISTINCT SEASON) AS NumTemporadas
+FROM Prueba.players
+GROUP BY PLAYER_NAME;
+
+
+-- Ejercicio 2: Calcular el promedio de puntos anotados por los equipos en casa y fuera de casa 
+SELECT
+  TEAM_ID_home AS TEAM_ID,
+  AVG(PTS_home) AS PromedioPuntosCasa,
+  AVG(PTS_away) AS PromedioPuntosFuera
+FROM Prueba.games
+GROUP BY TEAM_ID_home;
+
+
+-- Ejercicio 3: Encontrar los jugadores que tienen un promedio de más de 10 puntos por partido
+SELECT PLAYER_ID, NICKNAME AS Player,
+AVG (PTS) AS PromedioPuntos
+FROM Prueba.games_details
+GROUP BY PLAYER_ID, NICKNAME
+HAVING AVG(PTS) > 10
+ORDER BY PromedioPuntos DESC;
+
+
+-- Ejercicio 4: Ordenar los equipos por su porcentaje de victorias en la conferencia Oeste
+SELECT
+  TEAM,
+  W_PCT
+FROM Prueba.ranking
+WHERE CONFERENCE = 'West'
+ORDER BY W_PCT DESC;
+
+-- Ejercicio 5: Identificar el jugador que ha jugado en más temporadas consecutivas
+WITH TemporalRankedData AS (
+  SELECT
+    PLAYER_NAME,
+    SEASON,
+    ROW_NUMBER() OVER (PARTITION BY PLAYER_NAME ORDER BY SEASON) AS season_rank
+  FROM Prueba.players)
+SELECT
+  PLAYER_NAME,
+  MIN(SEASON) AS start_season,
+  MAX(SEASON) AS end_season,
+  COUNT(DISTINCT SEASON) AS consecutive_seasons
+FROM
+  TemporalRankedData
+GROUP BY
+  PLAYER_NAME, season_rank - SEASON
+ORDER BY
+  consecutive_seasons DESC
+LIMIT 1;
+
+
+-- Ejercicio 6: Calcular el porcentaje de juegos ganados en casa para cada equipo:
+SELECT
+  TEAM_ID_home AS TEAM_ID,
+  AVG(CASE WHEN HOME_TEAM_WINS = 1 THEN 1 ELSE 0 END) AS PorcentajeGanadosCasa
+FROM Prueba.games
+GROUP BY TEAM_ID_home;
+
+
+-- Ejercicio 7: Encontrar los jugadores que han tenido un aumento significativo en el promedio de puntos por partido (considero arbitrariamente que un aumento significativo es a partir de 5 ptos.):
+WITH PromedioAnterior AS (
+  SELECT
+    p.PLAYER_NAME,
+    AVG(
+      CASE 
+        WHEN p.TEAM_ID = g.TEAM_ID_home THEN g.PTS_home
+        WHEN p.TEAM_ID = g.TEAM_ID_away THEN g.PTS_away
+      END
+    ) AS PromedioAnterior
+  FROM `Prueba.players` p
+  JOIN `Prueba.games` g ON (p.TEAM_ID = g.TEAM_ID_home OR p.TEAM_ID = g.TEAM_ID_away) AND p.SEASON = g.SEASON
+  GROUP BY p.PLAYER_NAME
+)
+SELECT
+  p.PLAYER_NAME
+FROM `Prueba.players` p
+JOIN PromedioAnterior pa ON p.PLAYER_NAME = pa.PLAYER_NAME
+WHERE (
+  SELECT AVG(
+      CASE 
+        WHEN p.TEAM_ID = g.TEAM_ID_home THEN g.PTS_home
+        WHEN p.TEAM_ID = g.TEAM_ID_away THEN g.PTS_away
+      END
+    ) - pa.PromedioAnterior
+  FROM `Prueba.games` g
+  WHERE p.TEAM_ID = g.TEAM_ID_home OR p.TEAM_ID = g.TEAM_ID_away
+    AND p.SEASON = g.SEASON
+) > 5; 
+
+
+-- Ejercicio 8: Calcular la diferencia en el porcentaje de victorias entre temporadas para cada equipo
+WITH DiferenciaVictorias AS (
+  SELECT
+    TEAM_ID,
+    SEASON_ID,
+    LAG(W_PCT) OVER (PARTITION BY TEAM_ID ORDER BY SEASON_ID) AS VictoriesLastSeason,
+    W_PCT AS VictoriesCurrentSeason
+  FROM Prueba.ranking
+)
+SELECT
+  TEAM_ID,
+  SEASON_ID,
+  VictoriesCurrentSeason - VictoriesLastSeason AS DiferenciaVictorias
+FROM DiferenciaVictorias
+WHERE VictoriesLastSeason IS NOT NULL;
